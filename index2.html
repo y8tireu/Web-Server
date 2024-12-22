@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>GitHub File Access App</title>
+    <style>
+        /* General Styling */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 20px;
+            background-color: #000;
+            color: #fff;
+            line-height: 1.6;
+        }
+
+        h1 {
+            text-align: center;
+            color: #ffffff;
+            margin-bottom: 20px;
+        }
+
+        form {
+            max-width: 800px;
+            margin: 0 auto 20px auto;
+            padding: 20px;
+            background-color: #1a1a1a;
+            border-radius: 10px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: bold;
+            color: #ffffff;
+        }
+
+        input[type="text"] {
+            width: calc(100% - 50px);
+            padding: 12px;
+            margin-bottom: 15px;
+            box-sizing: border-box;
+            border: 1px solid #444;
+            border-radius: 5px;
+            background-color: #333;
+            color: #ffffff;
+        }
+
+        button {
+            padding: 15px 25px;
+            background: linear-gradient(90deg, red, yellow, green, cyan, blue, magenta, red);
+            background-size: 400% 400%;
+            color: #ffffff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        #user-info {
+            max-width: 400px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #1a1a1a;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        #user-info img {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            margin-bottom: 10px;
+        }
+
+        .repo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            max-width: 1000px;
+            margin: 20px auto;
+        }
+
+        .repo-item {
+            background-color: #1a1a1a;
+            padding: 20px;
+            border: 1px solid #555;
+            border-radius: 5px;
+            color: #ffffff;
+            text-align: center;
+        }
+
+        a {
+            color: #61dafb;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        #file-list {
+            max-width: 800px;
+            margin: 20px auto;
+        }
+
+        .file-item {
+            background-color: #1a1a1a;
+            padding: 20px;
+            margin-bottom: 15px;
+            border: 1px solid #555;
+            border-radius: 5px;
+            color: #ffffff;
+        }
+
+        #show-more-button {
+            display: block;
+            margin: 20px auto;
+            padding: 10px 20px;
+            font-size: 18px;
+            font-weight: bold;
+            background: linear-gradient(90deg, red, yellow, green, cyan, blue, magenta, red);
+            background-size: 400% 400%;
+            color: #ffffff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        /* Github Profile Button Styling */
+        .github-profile-button {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            background-color: #333;
+            color: white;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            text-decoration: none;
+            text-align: center;
+            cursor: pointer;
+            z-index: 1000;
+        }
+
+        .github-profile-button:hover {
+            background-color: #555;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>GitHub File Access App</h1>
+
+    <!-- Form to input GitHub repository URL -->
+    <form id="repo-form">
+        <label for="repo-url">Enter GitHub Repository URL:</label>
+        <input type="text" id="repo-url" name="repo-url" placeholder="https://github.com/username/repository" required>
+        <button type="submit">Access Files</button>
+    </form>
+
+    <!-- Form to input GitHub username -->
+    <form id="user-form">
+        <label for="username">Enter GitHub Username:</label>
+        <input type="text" id="username" name="username" placeholder="GitHub username" required>
+        <button type="submit">Load Repositories</button>
+    </form>
+
+    <!-- Section to display user information -->
+    <div id="user-info"></div>
+
+    <!-- Section to display file list -->
+    <div id="file-list"></div>
+
+    <!-- Section to display repository grid -->
+    <div id="repo-list" class="repo-grid"></div>
+
+    <!-- Show More Button -->
+    <button id="show-more-button" style="display: none;">Show More</button>
+
+    <!-- Github Profile Button -->
+    <a href="https://github.com/y8tireu" target="_blank" class="github-profile-button">Github Profile</a>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const repoForm = document.getElementById('repo-form');
+            const userForm = document.getElementById('user-form');
+            const userInfoDiv = document.getElementById('user-info');
+            const fileList = document.getElementById('file-list');
+            const repoList = document.getElementById('repo-list');
+            const showMoreButton = document.getElementById('show-more-button');
+            let currentUsername = '';
+            let allRepos = [];
+            let displayedRepos = 0;
+            const displayLimit = 1000;
+
+            // Handle repository URL submission
+            repoForm.addEventListener('submit', function (event) {
+                event.preventDefault();
+                const repoUrl = document.getElementById('repo-url').value.trim();
+                if (repoUrl) {
+                    const repoInfo = parseGitHubUrl(repoUrl);
+                    if (repoInfo) {
+                        fetchRepoContents(repoInfo.owner, repoInfo.repo);
+                    } else {
+                        alert('Please enter a valid GitHub repository URL.');
+                    }
+                }
+            });
+
+            // Parse GitHub repository URL
+            function parseGitHubUrl(url) {
+                const regex = /https?:\/\/github\.com\/([^\/]+)\/([^\/]+)(\/)?$/;
+                const match = url.match(regex);
+                return match ? { owner: match[1], repo: match[2] } : null;
+            }
+
+            // Fetch repository contents
+            function fetchRepoContents(owner, repo) {
+                const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents`;
+                fetch(apiUrl)
+                    .then(response => {
+                        if (response.ok) {
+                            return response.json();
+                        } else {
+                            throw new Error('Repository not found or access denied.');
+                        }
+                    })
+                    .then(data => {
+                        displayFiles(data);
+                    })
+                    .catch(error => {
+                        alert(error.message);
+                    });
+            }
+
+            // Display repository files
+            function displayFiles(files) {
+                fileList.innerHTML = ''; // Clear existing content
+
+                if (files.length === 0) {
+                    fileList.innerHTML += '<p>No files found in this repository.</p>';
+                    return;
+                }
+
+                files.forEach(file => {
+                    const fileItem = document.createElement('div');
+                    fileItem.classList.add('file-item');
+
+                    const fileName = document.createElement('h3');
+                    fileName.textContent = file.name;
+
+                    const fileLink = document.createElement('a');
+                    fileLink.href = file.download_url;
+                    fileLink.textContent = 'Download File';
+                    fileLink.download = file.name;
+
+                    fileItem.appendChild(fileName);
+                    fileItem.appendChild(fileLink);
+                    fileList.appendChild(fileItem);
+                });
+            }
+
+            // Handle GitHub username submission
+            userForm.addEventListener('submit', function (event) {
+                event.preventDefault();
+                const username = document.getElementById('username').value.trim();
+                if (username) {
+                    currentUsername = username;
+                    userInfoDiv.innerHTML = '';
+                    repoList.innerHTML = '<p>Loading repositories...</p>';
+                    fileList.innerHTML = '';
+                    fetchUserInfo(username);
+                    fetchAllUserRepositories(username);
+                }
+            });
+
+            // Fetch user information
+            async function fetchUserInfo(username) {
+                const apiUrl = `https://api.github.com/users/${username}`;
+                try {
+                    const response = await fetch(apiUrl);
+                    if (!response.ok) {
+                        throw new Error('User not found.');
+                    }
+                    const user = await response.json();
+                    displayUserInfo(user);
+                } catch (error) {
+                    userInfoDiv.innerHTML = `<p>Error: ${error.message}</p>`;
+                }
+            }
+
+            // Display user information
+            function displayUserInfo(user) {
+                userInfoDiv.innerHTML = `
+                    <img src="${user.avatar_url}" alt="${user.login}'s avatar">
+                    <h2>${user.login}</h2>
+                    <p>${user.bio || 'No bio available.'}</p>
+                    <p>Followers: ${user.followers} - Following: ${user.following}</p>
+                    <p>Public Repos: ${user.public_repos}</p>
+                    <a href="${user.html_url}" target="_blank">View GitHub Profile</a>
+                `;
+            }
+
+            // Fetch all user repositories
+            async function fetchAllUserRepositories(username) {
+                const perPage = 100; // Maximum repositories per page
+                let page = 1;
+                allRepos = [];
+                let repos = [];
+
+                try {
+                    do {
+                        const apiUrl = `https://api.github.com/users/${username}/repos?per_page=${perPage}&page=${page}`;
+                        const response = await fetch(apiUrl);
+                        if (!response.ok) {
+                            throw new Error('Failed to load repositories.');
+                        }
+                        repos = await response.json();
+                        allRepos = allRepos.concat(repos);
+                        page++;
+                    } while (repos.length === perPage);
+
+                    displayRepositories();
+                } catch (error) {
+                    repoList.innerHTML = `<p>Error: ${error.message}</p>`;
+                }
+            }
+
+            // Display repositories in grid
+            function displayRepositories() {
+                const reposToShow = allRepos.slice(displayedRepos, displayedRepos + displayLimit);
+                reposToShow.forEach(repo => {
+                    const repoItem = document.createElement('div');
+                    repoItem.classList.add('repo-item');
+
+                    const repoName = document.createElement('h3');
+                    repoName.textContent = repo.name;
+
+                    const repoLink = document.createElement('a');
+                    repoLink.href = repo.html_url;
+                    repoLink.target = '_blank';
+                    repoLink.textContent = 'View Repository';
+
+                    repoItem.appendChild(repoName);
+                    repoItem.appendChild(repoLink);
+                    repoList.appendChild(repoItem);
+                });
+
+                displayedRepos += reposToShow.length;
+
+                if (displayedRepos < allRepos.length) {
+                    showMoreButton.style.display = 'block';
+                } else {
+                    showMoreButton.style.display = 'none';
+                }
+            }
+
+            // Handle "Show More" button click
+            showMoreButton.addEventListener('click', displayRepositories);
+        });
+    </script>
+</body>
+
+</html>
+
