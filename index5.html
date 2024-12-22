@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Scientific Calculator</title>
+<style>
+  :root {
+    --bg-color: #1e1e1e;
+    --screen-bg: #333333;
+    --text-color: #ffffff;
+    --secondary-text: #cccccc;
+    --btn-bg: #2d2d2d;
+    --btn-highlight: #3a3a3a;
+    --accent-color: #2f84f5;
+    --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  }
+
+  body {
+    background: var(--bg-color);
+    color: var(--text-color);
+    font-family: var(--font-family);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+  }
+
+  .calculator {
+    display: grid;
+    grid-template-rows: 100px auto;
+    border-radius: 12px;
+    overflow: hidden;
+    width: 380px;
+    background: var(--bg-color);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+  }
+
+  .screen {
+    background: var(--screen-bg);
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-end;
+    padding: 20px;
+    font-size: 36px;
+    color: var(--text-color);
+    box-sizing: border-box;
+    overflow: hidden;
+    word-wrap: break-word;
+    user-select: none;
+  }
+
+  .buttons {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: #000;
+  }
+
+  .btn {
+    background: var(--btn-bg);
+    border: none;
+    outline: none;
+    font-size: 18px;
+    color: var(--text-color);
+    padding: 20px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+  }
+
+  .btn:hover {
+    background: var(--btn-highlight);
+  }
+
+  .btn:active {
+    background: var(--accent-color);
+  }
+
+  .btn.op {
+    color: var(--accent-color);
+  }
+
+  .btn.equals {
+    background: var(--accent-color);
+    color: #fff;
+  }
+
+  .btn.equals:hover {
+    background: #2c75d0;
+  }
+
+  .btn.special {
+    color: var(--secondary-text);
+  }
+
+  .btn:focus {
+    outline: 2px solid var(--accent-color);
+  }
+
+  /* Make the equals button span two columns if desired */
+  /* Example: Just to show customization. Currently not spanning two columns
+     If you want it to span, uncomment the line below and adjust layout accordingly.
+  */
+  /* .equals { grid-column: span 2; } */
+
+  /* Responsive adjustments */
+  @media (max-width: 400px) {
+    .calculator {
+      width: 95%;
+    }
+    .screen {
+      font-size: 28px;
+    }
+    .btn {
+      font-size: 16px;
+      padding: 15px;
+    }
+  }
+
+</style>
+</head>
+<body>
+<div class="calculator">
+  <div class="screen" id="screen">0</div>
+  <div class="buttons">
+    <!-- Top row (clear, backspace, etc.) -->
+    <button class="btn special" data-action="clearEntry">CE</button>
+    <button class="btn special" data-action="clearAll">C</button>
+    <button class="btn special" data-action="backspace">⌫</button>
+    <button class="btn op" data-action="divide">÷</button>
+
+    <!-- Scientific row 1 -->
+    <button class="btn special" data-action="square">x²</button>
+    <button class="btn special" data-action="cube">x³</button>
+    <button class="btn special" data-action="power">x^y</button>
+    <button class="btn special" data-action="sqrt">√</button>
+
+    <!-- Scientific row 2 -->
+    <button class="btn special" data-action="cbrt">³√</button>
+    <button class="btn special" data-action="sin">sin</button>
+    <button class="btn special" data-action="cos">cos</button>
+    <button class="btn special" data-action="tan">tan</button>
+
+    <!-- Scientific row 3 -->
+    <button class="btn special" data-action="ln">ln</button>
+    <button class="btn special" data-action="log">log</button>
+    <button class="btn special" data-action="exp">e^x</button>
+    <button class="btn special" data-action="pi">π</button>
+
+    <!-- Number / Basic rows -->
+    <button class="btn" data-action="7">7</button>
+    <button class="btn" data-action="8">8</button>
+    <button class="btn" data-action="9">9</button>
+    <button class="btn op" data-action="multiply">×</button>
+
+    <button class="btn" data-action="4">4</button>
+    <button class="btn" data-action="5">5</button>
+    <button class="btn" data-action="6">6</button>
+    <button class="btn op" data-action="subtract">-</button>
+
+    <button class="btn" data-action="1">1</button>
+    <button class="btn" data-action="2">2</button>
+    <button class="btn" data-action="3">3</button>
+    <button class="btn op" data-action="add">+</button>
+
+    <button class="btn" data-action="sign">±</button>
+    <button class="btn" data-action="0">0</button>
+    <button class="btn" data-action="decimal">.</button>
+    <button class="btn equals" data-action="equals">=</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  const screen = document.getElementById('screen');
+  let currentValue = '0';
+  let storedValue = null;
+  let storedOperator = null;
+  let resetOnNextNumber = false;
+
+  const isOperator = (op) => ['add','subtract','multiply','divide','power'].includes(op);
+
+  function updateScreen(value) {
+    screen.textContent = value;
+  }
+
+  function inputDigit(digit) {
+    if (resetOnNextNumber) {
+      currentValue = digit;
+      resetOnNextNumber = false;
+    } else {
+      currentValue = currentValue === '0' ? digit : currentValue + digit;
+    }
+    updateScreen(currentValue);
+  }
+
+  function inputDecimal() {
+    if (resetOnNextNumber) {
+      currentValue = '0.';
+      resetOnNextNumber = false;
+    } else if (!currentValue.includes('.')) {
+      currentValue += '.';
+    }
+    updateScreen(currentValue);
+  }
+
+  function handleOperator(op) {
+    if (storedOperator && !resetOnNextNumber) {
+      evaluate();
+    }
+    storedValue = parseFloat(currentValue);
+    storedOperator = op;
+    resetOnNextNumber = true;
+  }
+
+  function evaluate() {
+    if (storedOperator === null || resetOnNextNumber) return;
+
+    let result = 0;
+    let secondValue = parseFloat(currentValue);
+
+    switch(storedOperator) {
+      case 'add':
+        result = storedValue + secondValue;
+        break;
+      case 'subtract':
+        result = storedValue - secondValue;
+        break;
+      case 'multiply':
+        result = storedValue * secondValue;
+        break;
+      case 'divide':
+        if (secondValue === 0) {
+          result = 'Error';
+          break;
+        }
+        result = storedValue / secondValue;
+        break;
+      case 'power':
+        result = Math.pow(storedValue, secondValue);
+        break;
+      default:
+        return;
+    }
+
+    currentValue = String(result);
+    updateScreen(currentValue);
+    storedOperator = null;
+    storedValue = null;
+    resetOnNextNumber = true;
+  }
+
+  function clearAll() {
+    currentValue = '0';
+    storedValue = null;
+    storedOperator = null;
+    resetOnNextNumber = false;
+    updateScreen(currentValue);
+  }
+
+  function clearEntry() {
+    currentValue = '0';
+    updateScreen(currentValue);
+  }
+
+  function backspace() {
+    if (!resetOnNextNumber) {
+      currentValue = currentValue.length > 1 ? currentValue.slice(0, -1) : '0';
+      updateScreen(currentValue);
+    }
+  }
+
+  function toggleSign() {
+    currentValue = String(parseFloat(currentValue) * -1);
+    updateScreen(currentValue);
+  }
+
+  // Scientific operations
+  function square() {
+    currentValue = String(Math.pow(parseFloat(currentValue), 2));
+    updateScreen(currentValue);
+  }
+
+  function cube() {
+    currentValue = String(Math.pow(parseFloat(currentValue), 3));
+    updateScreen(currentValue);
+  }
+
+  function sqrt() {
+    let val = parseFloat(currentValue);
+    currentValue = val < 0 ? 'Error' : String(Math.sqrt(val));
+    updateScreen(currentValue);
+  }
+
+  function cbrt() {
+    currentValue = String(Math.cbrt(parseFloat(currentValue)));
+    updateScreen(currentValue);
+  }
+
+  function sinVal() {
+    currentValue = String(Math.sin(parseFloat(currentValue) * Math.PI/180));
+    updateScreen(currentValue);
+  }
+
+  function cosVal() {
+    currentValue = String(Math.cos(parseFloat(currentValue) * Math.PI/180));
+    updateScreen(currentValue);
+  }
+
+  function tanVal() {
+    currentValue = String(Math.tan(parseFloat(currentValue) * Math.PI/180));
+    updateScreen(currentValue);
+  }
+
+  function lnVal() {
+    let val = parseFloat(currentValue);
+    currentValue = val <= 0 ? 'Error' : String(Math.log(val));
+    updateScreen(currentValue);
+  }
+
+  function logVal() {
+    let val = parseFloat(currentValue);
+    currentValue = val <= 0 ? 'Error' : String(Math.log10(val));
+    updateScreen(currentValue);
+  }
+
+  function expVal() {
+    currentValue = String(Math.exp(parseFloat(currentValue)));
+    updateScreen(currentValue);
+  }
+
+  function piVal() {
+    currentValue = String(Math.PI);
+    updateScreen(currentValue);
+  }
+
+  const actionMap = {
+    '0': ()=>inputDigit('0'),
+    '1': ()=>inputDigit('1'),
+    '2': ()=>inputDigit('2'),
+    '3': ()=>inputDigit('3'),
+    '4': ()=>inputDigit('4'),
+    '5': ()=>inputDigit('5'),
+    '6': ()=>inputDigit('6'),
+    '7': ()=>inputDigit('7'),
+    '8': ()=>inputDigit('8'),
+    '9': ()=>inputDigit('9'),
+    'decimal': inputDecimal,
+    'add': ()=>handleOperator('add'),
+    'subtract': ()=>handleOperator('subtract'),
+    'multiply': ()=>handleOperator('multiply'),
+    'divide': ()=>handleOperator('divide'),
+    'power': ()=>handleOperator('power'),
+    'equals': evaluate,
+    'clearAll': clearAll,
+    'clearEntry': clearEntry,
+    'backspace': backspace,
+    'sign': toggleSign,
+    'square': square,
+    'cube': cube,
+    'sqrt': sqrt,
+    'cbrt': cbrt,
+    'sin': sinVal,
+    'cos': cosVal,
+    'tan': tanVal,
+    'ln': lnVal,
+    'log': logVal,
+    'exp': expVal,
+    'pi': piVal,
+  };
+
+  document.querySelectorAll('.btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const action = btn.getAttribute('data-action');
+      const fn = actionMap[action];
+      if (fn) fn();
+    });
+  });
+})();
+</script>
+</body>
+</html>
+

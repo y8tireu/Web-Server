@@ -1,0 +1,478 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>NovaAI</title>
+    <style>
+        body {
+            background: #000;
+            color: #fff;
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* GitHub Profile button in the top-right corner of the screen */
+        #github-button {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            animation: rgbGlow 2s infinite;
+        }
+
+        /* Go To Minecraft button in the top-left corner of the screen */
+        #minecraft-button {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            animation: rgbGlow 2s infinite;
+        }
+
+        @keyframes rgbGlow {
+            0% { box-shadow: 0 0 10px 5px #ff0000; }
+            33% { box-shadow: 0 0 10px 5px #00ff00; }
+            66% { box-shadow: 0 0 10px 5px #0000ff; }
+            100% { box-shadow: 0 0 10px 5px #ff0000; }
+        }
+
+        #chat-container {
+            position: relative;
+            background: #292929;
+            border-radius: 15px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.7);
+            width: 90%;
+            max-width: 600px;
+            max-height: 700px;
+            padding: 20px;
+            overflow: hidden;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateY(50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        /* Messages container */
+        #messages {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-bottom: 10px;
+            scrollbar-width: thin;
+            scrollbar-color: #555 #333;
+        }
+
+        #messages::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        #messages::-webkit-scrollbar-thumb {
+            background: #555;
+            border-radius: 10px;
+        }
+
+        #messages::-webkit-scrollbar-track {
+            background: #333;
+        }
+
+        #messages li {
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 10px;
+            word-wrap: break-word;
+            animation: fadeIn 0.3s ease-in-out forwards;
+            opacity: 0;
+            font-size: 14px;
+        }
+
+        @keyframes fadeIn {
+            to { opacity: 1; }
+        }
+
+        .user {
+            background: #4CAF50;
+            color: #fff;
+            align-self: flex-end;
+            transform: translateX(10px);
+        }
+
+        .bot {
+            background: #2196F3;
+            color: #fff;
+            align-self: flex-start;
+            transform: translateX(-10px);
+        }
+
+        #input-container {
+            display: flex;
+            gap: 10px;
+        }
+
+        #user-input, #search-input {
+            flex: 1;
+            padding: 8px;
+            border: none;
+            border-radius: 5px;
+            font-size: 14px;
+            outline: none;
+            background: #555;
+            color: #fff;
+            transition: background 0.3s;
+        }
+
+        #user-input:focus, #search-input:focus {
+            background: #666;
+        }
+
+        button, a.button-link {
+            background: #000;
+            border: none;
+            border-radius: 5px;
+            color: #fff;
+            font-weight: bold;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 14px;
+            padding: 8px 12px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.5s ease;
+            animation: rgbGlow 2s infinite;
+        }
+
+        #send-button, #search-mode-button {
+            min-width: 70px;
+        }
+
+        .search-elements {
+            display: none;
+        }
+
+        #bottom-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            justify-content: center;
+        }
+
+        /* Modal for viewing questions */
+        #modal-background {
+            position: fixed;
+            top:0; left:0;
+            width:100%; height:100%;
+            background: rgba(0,0,0,0.7);
+            display:none;
+            justify-content:center;
+            align-items:center;
+            z-index: 999;
+            animation: fadeModalIn 0.3s ease-in-out;
+        }
+
+        @keyframes fadeModalIn {
+            from { opacity:0; }
+            to { opacity:1; }
+        }
+
+        #modal {
+            background: #292929;
+            padding: 20px;
+            border-radius: 10px;
+            width: 80%;
+            max-width: 500px;
+            max-height: 80%;
+            overflow-y:auto;
+            box-shadow: 0 0 20px rgba(0,0,0,0.8);
+        }
+
+        #modal h2 {
+            margin-top:0;
+            font-size: 16px;
+        }
+
+        #modal-search {
+            width:100%;
+            padding:8px;
+            border-radius:5px;
+            border:none;
+            margin-bottom:10px;
+            background:#333;
+            color:#fff;
+            font-size: 14px;
+        }
+
+        #modal ul {
+            list-style:none;
+            padding:0;
+        }
+
+        #modal li {
+            margin-bottom:10px;
+            background:#333;
+            padding:10px;
+            border-radius:5px;
+            font-size: 14px;
+        }
+
+        #modal-close {
+            background:#000;
+            color:#fff;
+            border:none;
+            padding:8px 12px;
+            border-radius:5px;
+            cursor:pointer;
+            float:right;
+            font-size: 14px;
+            animation: rgbGlow 2s infinite;
+        }
+
+        @media (max-width: 480px) {
+            #bottom-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+
+    </style>
+</head>
+<body>
+    <!-- GitHub button top-right of screen -->
+    <a id="github-button" class="button-link" href="https://github.com/y8tireu-llc" target="_blank">GitHub Profile</a>
+    <h1 style="text-align: center; color: white; margin-top: 20px;">NovaAI</h1>
+
+
+    <!-- Go To Minecraft button top-left of screen -->
+    <button id="minecraft-button">Go To Minecraft</button>
+
+    <div id="chat-container">
+        <ul id="messages"></ul>
+
+        <div id="input-container">
+            <!-- Chat mode elements -->
+            <input type="text" id="user-input" placeholder="Type a message...">
+            <button id="send-button">Send</button>
+
+            <!-- Search mode elements -->
+            <input type="text" id="search-input" class="search-elements" placeholder="Search DuckDuckGo...">
+            <button id="search-button" class="search-elements">Search</button>
+        </div>
+    </div>
+
+    <div id="bottom-buttons">
+        <button id="add-question-button">Add Questions</button>
+        <button id="view-questions-button">View Questions</button>
+        <button id="calculator-button">Calculator</button>
+        <button id="search-mode-button">Toggle Search</button>
+    </div>
+
+    <div id="modal-background">
+        <div id="modal">
+            <h2>Available Questions</h2>
+            <input type="text" id="modal-search" placeholder="Search questions...">
+            <ul id="question-list"></ul>
+            <button id="modal-close">Close</button>
+        </div>
+    </div>
+
+    <script>
+        const messages = document.getElementById('messages');
+        const userInput = document.getElementById('user-input');
+        const sendButton = document.getElementById('send-button');
+        const addQuestionButton = document.getElementById('add-question-button');
+        const viewQuestionsButton = document.getElementById('view-questions-button');
+        const calculatorButton = document.getElementById('calculator-button');
+        const searchModeButton = document.getElementById('search-mode-button');
+        const searchInput = document.getElementById('search-input');
+        const searchButton = document.getElementById('search-button');
+
+        const modalBg = document.getElementById('modal-background');
+        const modalClose = document.getElementById('modal-close');
+        const modalSearch = document.getElementById('modal-search');
+        const questionList = document.getElementById('question-list');
+
+        const minecraftButton = document.getElementById('minecraft-button');
+        minecraftButton.addEventListener('click', () => {
+            window.location.href = 'index4.html';
+        });
+
+        let searchMode = false;
+
+        let defaultBotResponses = {
+            'hello': 'Hello there! How can I assist you today?',
+            'how are you?': 'I am just a bot, but I am doing great! How about you?',
+            'bye': 'Goodbye! Have a great day!',
+            'what is your name?': 'I am your friendly AI companion!',
+            'what can you do?': 'I can chat with you, answer questions, and provide information on various topics!',
+            'tell me a joke': 'Why don’t scientists trust atoms? Because they make up everything!',
+            'tell me a fun fact': 'Did you know? An octopus has three hearts and blue blood.',
+            'what is the triple point?': 'The triple point is where water can boil and freeze simultaneously.',
+            'shortest war in history': 'The shortest war was between Britain and Zanzibar in 1896, lasting just 38 minutes.',
+            'russia vs pluto': 'Russia has a larger surface area than Pluto.',
+            'how many scents can a human nose detect?': 'The human nose can detect about a trillion scents.',
+            'first novel': '"The Tale of Genji" is considered the first novel, written around 1000 AD in Japan.',
+            'olympic games origin': 'The Olympic Games originated in ancient Greece as a festival to honor Zeus.',
+            '1gb hard drive weight': 'The first 1GB hard drive introduced in 1980 weighed about 500 pounds.',
+            'does honey spoil?': 'Honey never spoils. It can last thousands of years if sealed properly.',
+            'highest-grossing movie': 'As of now, "Avatar" is the highest-grossing movie of all time.',
+            'most-streamed song spotify': '"Shape of You" by Ed Sheeran is among the most-streamed songs on Spotify.',
+            'most-watched tv show': '"M*A*S*H" final episode is one of the most-watched TV broadcasts in U.S. history.',
+            'most awarded grammy artist': 'Beyoncé holds the record for most Grammy wins by a female artist.',
+            'fastest land animal': 'The cheetah is the fastest land animal, reaching speeds up to 70 mph.',
+            'longest wingspan bird': 'The wandering albatross has the longest wingspan, up to 12 feet.',
+            'oldest city': 'Damascus, Syria is often cited as the oldest continuously inhabited city.',
+            'deepest ocean point': 'The Mariana Trench in the Pacific Ocean is the deepest point in Earth\'s oceans.',
+            'largest planet': 'Jupiter is the largest planet in the Solar System.',
+            'hardest natural substance': 'Diamond is the hardest natural substance on Earth.',
+            'largest desert': 'The Sahara is the largest hot desert, and Antarctica is the largest cold desert.',
+            'most countries in a continent': 'Africa has the most countries, totaling 54.',
+            'oldest written document': 'The Kish Tablet (around 3500 BC) is one of the oldest surviving written documents.',
+            'oldest computer father': 'Charles Babbage is known as the "Father of the Computer".',
+            'tallest building': 'The Burj Khalifa in Dubai is the tallest building, at 828 meters.',
+            'most spoken language': 'Mandarin Chinese has the most native speakers worldwide.',
+            'smallest country': 'Vatican City is the smallest country in the world.',
+            'longest lifespan animal': 'The Greenland shark can live over 400 years.',
+            'first computer programmer': 'Ada Lovelace is considered the first computer programmer.'
+        };
+
+        const storedResponses = localStorage.getItem('botResponses');
+        if (storedResponses) {
+            defaultBotResponses = JSON.parse(storedResponses);
+        }
+
+        async function handleUserMessage(message) {
+            const lowerMessage = message.toLowerCase();
+            return defaultBotResponses[lowerMessage] || "I'm sorry, I don't have an answer for that.";
+        }
+
+        async function duckDuckGoSearch(query) {
+            const url = `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_redirect=1`;
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                if (data && data.Abstract && data.Abstract !== '') {
+                    return data.Abstract;
+                } else if (data && data.RelatedTopics && data.RelatedTopics.length > 0) {
+                    return data.RelatedTopics[0].Text || "Sorry, I couldn't find a relevant summary.";
+                } else {
+                    return "Sorry, I couldn't find information on that.";
+                }
+            } catch (error) {
+                return "Sorry, something went wrong with the search.";
+            }
+        }
+
+        sendButton.addEventListener('click', async () => {
+            if (searchMode) return;
+            const userMessage = userInput.value.trim();
+            if (userMessage) {
+                addMessage('user', userMessage);
+                userInput.value = '';
+                const botResponse = await handleUserMessage(userMessage);
+                setTimeout(() => addMessage('bot', botResponse), 500);
+            }
+        });
+
+        searchButton.addEventListener('click', async () => {
+            if (!searchMode) return;
+            const query = searchInput.value.trim();
+            if (query) {
+                addMessage('user', `Search: ${query}`);
+                const response = await duckDuckGoSearch(query);
+                setTimeout(() => addMessage('bot', response), 500);
+                searchInput.value = '';
+            }
+        });
+
+        function addMessage(sender, text) {
+            const message = document.createElement('li');
+            message.className = sender;
+            message.textContent = text;
+            messages.appendChild(message);
+            messages.scrollTop = messages.scrollHeight;
+        }
+
+        addQuestionButton.addEventListener('click', () => {
+            const question = prompt('Enter the new question:');
+            if (!question) return;
+            const answer = prompt('Enter the answer:');
+            if (!answer) return;
+            defaultBotResponses[question.toLowerCase()] = answer;
+            saveResponses();
+            alert('New question added successfully!');
+        });
+
+        viewQuestionsButton.addEventListener('click', () => {
+            showModal();
+        });
+
+        calculatorButton.addEventListener('click', () => {
+            window.location.href = 'index5.html';
+        });
+
+        searchModeButton.addEventListener('click', () => {
+            searchMode = !searchMode;
+            if (searchMode) {
+                userInput.style.display = 'none';
+                sendButton.style.display = 'none';
+                searchInput.style.display = 'block';
+                searchButton.style.display = 'block';
+                searchModeButton.textContent = 'Toggle Chat';
+            } else {
+                userInput.style.display = 'block';
+                sendButton.style.display = 'block';
+                searchInput.style.display = 'none';
+                searchButton.style.display = 'none';
+                searchModeButton.textContent = 'Toggle Search';
+            }
+        });
+
+        function saveResponses() {
+            localStorage.setItem('botResponses', JSON.stringify(defaultBotResponses));
+        }
+
+        function showModal() {
+            modalBg.style.display = 'flex';
+            renderQuestions('');
+        }
+
+        function closeModal() {
+            modalBg.style.display = 'none';
+        }
+
+        modalClose.addEventListener('click', closeModal);
+
+        function renderQuestions(filter) {
+            questionList.innerHTML = '';
+            const entries = Object.entries(defaultBotResponses);
+
+            entries
+                .filter(([q]) => q.includes(filter.toLowerCase()))
+                .forEach(([q, a]) => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `<strong>Q:</strong> ${q}<br><strong>A:</strong> ${a}`;
+                    questionList.appendChild(li);
+                });
+        }
+
+        modalSearch.addEventListener('input', (e) => {
+            renderQuestions(e.target.value);
+        });
+
+        userInput.addEventListener('keypress', (e) => {
+            if (!searchMode && e.key === 'Enter') {
+                sendButton.click();
+            }
+        });
+
+        searchInput.addEventListener('keypress', (e) => {
+            if (searchMode && e.key === 'Enter') {
+                searchButton.click();
+            }
+        });
+    </script>
+</body>
+</html>
